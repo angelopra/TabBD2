@@ -41,13 +41,16 @@ LANGUAGE 'plpgsql';
 
 
 -- calcula quantas sacas serao necessarias para uma colheita
-CREATE OR REPLACE FUNCTION sacas_necess(Colheita.idPlantio%TYPE, Colheita.seq_colheita%TYPE)
+CREATE OR REPLACE FUNCTION sacas_necess(Colheita.idPlantio%TYPE, Colheita.seq_colheita%TYPE, Saca.idRecColheita%TYPE)
 RETURNS int AS
 $$
 DECLARE
 	prod Colheita.producao%TYPE;
+	tam_saca Saca.tamanho%TYPE;
 BEGIN
 	SELECT producao INTO prod FROM Colheita WHERE idPlantio = $1 AND seq_colheita = $2;
+	SELECT tamanho INTO tam_saca FROM Saca WHERE idRecColheita = $3;
+	RETURN prod/tam_saca;
 END;
 $$
 LANGUAGE 'plpgsql';
@@ -60,8 +63,19 @@ LANGUAGE 'plpgsql';
 CREATE OR REPLACE FUNCTION atualiza_operador()
 RETURNS trigger AS
 $$
+DECLARE
+	operadores Operador.idUsuario%TYPE;
+	controladores Controlador.idUsuario%TYPE;
 BEGIN
-	
+	SELECT idUsuario INTO operadores FROM Operador;
+	SELECT idUsuario INTO controladores FROM Controlador;
+	IF NEW.idUsuario IN operadores THEN
+		UPDATE Operador SET desempenho = NEW.hrs_trab/10 WHERE idUsuario = NEW.idUsuario;
+	END IF;
+	IF NEW.idUsuario IN controladores THEN
+		UPDATE Controlador SET desempenho = NEW.hrs_trab/10 WHERE idUsuario = NEW.idUsuario;
+	END IF;
+	RETURN NEW;
 END;
 $$
 LANGUAGE 'plpgsql';
